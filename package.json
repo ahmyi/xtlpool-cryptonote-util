@@ -1,0 +1,37 @@
+{
+  "name": "cryptonote-util",
+  "version": "0.0.4",
+  "main": "cryptonote",
+  "author": {
+    "name": "LucasJones",
+    "email": "lucasjonesdev@hotmail.co.uk"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dvandal/node-cryptonote-util.git"
+  },
+  "dependencies": {
+    "bindings": "*",
+    "nan": "^2.0.0"
+  },
+  "keywords": [
+    "cryptonight",
+    "cryptonote"
+  ],
+  "scripts": {
+    "install": "node-gyp rebuild"
+  },
+  "gypfile": true,
+  "gitHead": "48a69b4940d332e061c45cb41034197025a7a32b",
+  "readme": "Node-Cryptonote-Util\n====================\n\nDependencies\n------------\n\n* Boost (http://www.boost.org/)",
+  "readmeFilename": "README.md",
+  "description": "Node-Cryptonote-Util ====================",
+  "bugs": {
+    "url": "https://github.com/dvandal/node-cryptonote-util/issues"
+  },
+  "homepage": "https://github.com/dvandal/node-cryptonote-util#readme",
+  "_id": "cryptonote-util@0.0.4",
+  "_shasum": "ccf11d801842788f56847939081ceb9dbbafe3d0",
+  "_from": "git://github.com/dvandal/node-cryptonote-util.git#xmr-Nan-2.0",
+  "_resolved": "git://github.com/dvandal/node-cryptonote-util.git#48a69b4940d332e061c45cb41034197025a7a32b"
+}
