@@ -1,14 +1,14 @@
 {
   "name": "cryptonote-util",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "main": "cryptonote",
   "author": {
-    "name": "LucasJones",
-    "email": "lucasjonesdev@hotmail.co.uk"
+    "name": "ahmyi",
+    "email": "cryptoamity@gmail.com"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/dvandal/node-cryptonote-util.git"
+    "url": "git+https://github.com/ahmyi/node-cryptonote-util.git"
   },
   "dependencies": {
     "bindings": "*",
@@ -29,9 +29,9 @@
   "bugs": {
     "url": "https://github.com/dvandal/node-cryptonote-util/issues"
   },
-  "homepage": "https://github.com/dvandal/node-cryptonote-util#readme",
-  "_id": "cryptonote-util@0.0.4",
+  "homepage": "https://github.com/ahmyi/node-cryptonote-util#readme",
+  "_id": "cryptonote-util@0.0.5",
   "_shasum": "ccf11d801842788f56847939081ceb9dbbafe3d0",
-  "_from": "git://github.com/dvandal/node-cryptonote-util.git#xmr-Nan-2.0",
-  "_resolved": "git://github.com/dvandal/node-cryptonote-util.git#48a69b4940d332e061c45cb41034197025a7a32b"
+  "_from": "git://github.com/ahmyi/node-cryptonote-util.git#v9",
+  "_resolved": "git://github.com/ahmyi/node-cryptonote-util.git#48a69b4940d332e061c45cb41034197025a7a32b"
 }
