@@ -68,17 +68,6 @@ namespace cryptonote
     crypto::public_key key;
   };
 
-  #pragma pack(push, 1)
-  struct bb_txout_to_key
-  {
-    bb_txout_to_key() { }
-    bb_txout_to_key(const crypto::public_key &_key) : key(_key) { }
-    crypto::public_key key;
-    uint8_t mix_attr;
-  };
-  #pragma pack(pop)
-
-
   /* inputs */
 
   struct txin_gen
@@ -135,7 +124,6 @@ namespace cryptonote
   typedef boost::variant<txin_gen, txin_to_script, txin_to_scripthash, txin_to_key> txin_v;
 
   typedef boost::variant<txout_to_script, txout_to_scripthash, txout_to_key> txout_target_v;
-  typedef boost::variant<txout_to_script, txout_to_scripthash, bb_txout_to_key> bb_txout_target_v;
 
   //typedef std::pair<uint64_t, txout> out_t;
   struct tx_out
@@ -148,21 +136,12 @@ namespace cryptonote
       FIELD(target)
     END_SERIALIZE()
   };
-  struct bb_tx_out
-  {
-    uint64_t amount;
-    bb_txout_target_v target;
-
-    BEGIN_SERIALIZE_OBJECT()
-      VARINT_FIELD(amount)
-      FIELD(target)
-    END_SERIALIZE()
-  };
 
   class transaction_prefix
   {
 
   public:
+    enum BLOB_TYPE blob_type;
     // tx information
     size_t   version;
     uint64_t unlock_time;  //number of block (or time), used as a limitation like: spend this tx not early then block/time
@@ -172,9 +151,16 @@ namespace cryptonote
     //extra
     std::vector<uint8_t> extra;
 
+    std::vector<uint64_t> output_unlock_times;
+    bool is_deregister;
+
     BEGIN_SERIALIZE()
       VARINT_FIELD(version)
-      if(CURRENT_TRANSACTION_VERSION < version) return false;
+      if (blob_type == BLOB_TYPE_CRYPTONOTE_LOKI)
+      {
+        FIELD(output_unlock_times)
+        FIELD(is_deregister)
+      }
       VARINT_FIELD(unlock_time)
       FIELD(vin)
       FIELD(vout)
@@ -183,7 +169,7 @@ namespace cryptonote
 
 
   protected:
-    transaction_prefix(){}
+    transaction_prefix() : blob_type(BLOB_TYPE_CRYPTONOTE) {}
   };
 
   class transaction: public transaction_prefix
@@ -199,7 +185,7 @@ namespace cryptonote
     BEGIN_SERIALIZE_OBJECT()
       FIELDS(*static_cast<transaction_prefix *>(this))
 
-      if (version == 1)
+      if (version == 1 && blob_type != BLOB_TYPE_CRYPTONOTE2)
       {
         ar.tag("signatures");
         ar.begin_array();
@@ -256,50 +242,6 @@ namespace cryptonote
     static size_t get_signature_size(const txin_v& tx_in);
   };
 
-  class bb_transaction_prefix
-  {
-
-  public:
-    // tx information
-    size_t   version;
-    uint64_t unlock_time;  //number of block (or time), used as a limitation like: spend this tx not early then block/time
-
-    std::vector<txin_v> vin;
-    std::vector<bb_tx_out> vout;
-    //extra
-    std::vector<uint8_t> extra;
-
-    BEGIN_SERIALIZE()
-      VARINT_FIELD(version)
-      VARINT_FIELD(unlock_time)
-      FIELD(vin)
-      FIELD(vout)
-      FIELD(extra)
-    END_SERIALIZE()
-
-
-  protected:
-    bb_transaction_prefix(){}
-  };
-
-  class bb_transaction: public bb_transaction_prefix
-  {
-  public:
-    std::vector<std::vector<crypto::signature> > signatures; //count signatures  always the same as inputs count
-
-    bb_transaction();
-    virtual ~bb_transaction();
-    void set_null();
-
-    BEGIN_SERIALIZE_OBJECT()
-      FIELDS(*static_cast<bb_transaction_prefix *>(this))
-      FIELD(signatures)
-    END_SERIALIZE()
-
-    static size_t get_signature_size(const txin_v& tx_in);
-  };
-
-
   inline
   transaction::transaction()
   {
@@ -336,45 +278,6 @@ namespace cryptonote
 
     return boost::apply_visitor(txin_signature_size_visitor(), tx_in);
   }
-
-  inline
-  bb_transaction::bb_transaction()
-  {
-    set_null();
-  }
-
-  inline
-  bb_transaction::~bb_transaction()
-  {
-    //set_null();
-  }
-
-  inline
-  void bb_transaction::set_null()
-  {
-    version = 0;
-    unlock_time = 0;
-    vin.clear();
-    vout.clear();
-    extra.clear();
-    signatures.clear();
-  }
-
-  inline
-  size_t bb_transaction::get_signature_size(const txin_v& tx_in)
-  {
-    struct txin_signature_size_visitor : public boost::static_visitor<size_t>
-    {
-      size_t operator()(const txin_gen& txin) const{return 0;}
-      size_t operator()(const txin_to_script& txin) const{return 0;}
-      size_t operator()(const txin_to_scripthash& txin) const{return 0;}
-      size_t operator()(const txin_to_key& txin) const {return txin.key_offsets.size();}
-    };
-
-    return boost::apply_visitor(txin_signature_size_visitor(), tx_in);
-  }
-
-
 
   /************************************************************************/
   /*                                                                      */
@@ -472,6 +375,8 @@ namespace cryptonote
 
   struct block_header
   {
+    enum BLOB_TYPE blob_type;
+
     uint8_t major_version;
     uint8_t minor_version;
     uint64_t timestamp;
@@ -481,9 +386,9 @@ namespace cryptonote
     BEGIN_SERIALIZE()
       VARINT_FIELD(major_version)
       VARINT_FIELD(minor_version)
-      VARINT_FIELD(timestamp)
+      if (blob_type != BLOB_TYPE_FORKNOTE2) VARINT_FIELD(timestamp)
       FIELD(prev_id)
-      FIELD(nonce)
+      if (blob_type != BLOB_TYPE_FORKNOTE2) FIELD(nonce)
     END_SERIALIZE()
   };
 
@@ -494,8 +399,15 @@ namespace cryptonote
     transaction miner_tx;
     std::vector<crypto::hash> tx_hashes;
 
+    void set_blob_type(enum BLOB_TYPE bt) { miner_tx.blob_type = blob_type = bt; }
+
     BEGIN_SERIALIZE_OBJECT()
       FIELDS(*static_cast<block_header *>(this))
+      if (blob_type == BLOB_TYPE_FORKNOTE2)
+      {
+        auto sbb = make_serializable_bytecoin_block(*this, false, false);
+        FIELD_N("parent_block", sbb);
+      }
       FIELD(miner_tx)
       FIELD(tx_hashes)
     END_SERIALIZE()
@@ -506,39 +418,6 @@ namespace cryptonote
     block& block_ref = const_cast<block&>(b);
     return serializable_bytecoin_block(block_ref.parent_block, block_ref.timestamp, hashing_serialization, header_only);
   }
-
-
-  struct bb_block_header
-  {
-    uint8_t major_version;
-    uint8_t minor_version;
-    uint64_t timestamp;
-    crypto::hash  prev_id;
-    uint64_t nonce;
-    uint8_t flags;
-
-    BEGIN_SERIALIZE()
-      FIELD(major_version)
-      FIELD(nonce)
-      FIELD(prev_id)
-      VARINT_FIELD(minor_version)
-      VARINT_FIELD(timestamp)
-      FIELD(flags)
-    END_SERIALIZE()
-  };
-
-  struct bb_block: public bb_block_header
-  {
-    bb_transaction miner_tx;
-    std::vector<crypto::hash> tx_hashes;
-
-    BEGIN_SERIALIZE()
-      FIELDS(*static_cast<bb_block_header *>(this))
-      FIELD(miner_tx)
-      FIELD(tx_hashes)
-    END_SERIALIZE()
-  };
-
 
   /************************************************************************/
   /*                                                                      */
@@ -560,22 +439,21 @@ namespace cryptonote
   };
 
   struct integrated_address {
-          account_public_address adr;
-          crypto::hash8 payment_id;
-    
-          BEGIN_SERIALIZE_OBJECT()
-          FIELD(adr)
-          FIELD(payment_id)
-          END_SERIALIZE()
-    
-          BEGIN_KV_SERIALIZE_MAP()
-          KV_SERIALIZE(adr)
-          KV_SERIALIZE(payment_id)
-          END_KV_SERIALIZE_MAP()
-      };
+    account_public_address adr;
+    crypto::hash8 payment_id;
 
+    BEGIN_SERIALIZE_OBJECT()
+    FIELD(adr)
+    FIELD(payment_id)
+    END_SERIALIZE()
 
-    struct keypair
+    BEGIN_KV_SERIALIZE_MAP()
+    KV_SERIALIZE(adr)
+    KV_SERIALIZE(payment_id)
+    END_KV_SERIALIZE_MAP()
+  };
+
+  struct keypair
   {
     crypto::public_key pub;
     crypto::secret_key sec;
@@ -592,7 +470,6 @@ namespace cryptonote
 }
 
 BLOB_SERIALIZER(cryptonote::txout_to_key);
-BLOB_SERIALIZER(cryptonote::bb_txout_to_key);
 BLOB_SERIALIZER(cryptonote::txout_to_scripthash);
 
 VARIANT_TAG(binary_archive, cryptonote::txin_gen, 0xff);
@@ -602,7 +479,6 @@ VARIANT_TAG(binary_archive, cryptonote::txin_to_key, 0x2);
 VARIANT_TAG(binary_archive, cryptonote::txout_to_script, 0x0);
 VARIANT_TAG(binary_archive, cryptonote::txout_to_scripthash, 0x1);
 VARIANT_TAG(binary_archive, cryptonote::txout_to_key, 0x2);
-VARIANT_TAG(binary_archive, cryptonote::bb_txout_to_key, 0x2);
 VARIANT_TAG(binary_archive, cryptonote::transaction, 0xcc);
 VARIANT_TAG(binary_archive, cryptonote::block, 0xbb);
 
@@ -613,7 +489,6 @@ VARIANT_TAG(json_archive, cryptonote::txin_to_key, "key");
 VARIANT_TAG(json_archive, cryptonote::txout_to_script, "script");
 VARIANT_TAG(json_archive, cryptonote::txout_to_scripthash, "scripthash");
 VARIANT_TAG(json_archive, cryptonote::txout_to_key, "key");
-VARIANT_TAG(json_archive, cryptonote::bb_txout_to_key, "key");
 VARIANT_TAG(json_archive, cryptonote::transaction, "tx");
 VARIANT_TAG(json_archive, cryptonote::block, "block");
 
@@ -624,6 +499,5 @@ VARIANT_TAG(debug_archive, cryptonote::txin_to_key, "key");
 VARIANT_TAG(debug_archive, cryptonote::txout_to_script, "script");
 VARIANT_TAG(debug_archive, cryptonote::txout_to_scripthash, "scripthash");
 VARIANT_TAG(debug_archive, cryptonote::txout_to_key, "key");
-VARIANT_TAG(debug_archive, cryptonote::bb_txout_to_key, "key");
 VARIANT_TAG(debug_archive, cryptonote::transaction, "tx");
 VARIANT_TAG(debug_archive, cryptonote::block, "block");
