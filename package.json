@@ -27,11 +27,12 @@
   "readmeFilename": "README.md",
   "description": "Node-Cryptonote-Util ====================",
   "bugs": {
-    "url": "https://github.com/dvandal/node-cryptonote-util/issues"
+    "url": "https://github.com/ahmyi/node-cryptonote-util/issues"
   },
   "homepage": "https://github.com/ahmyi/node-cryptonote-util#readme",
   "_id": "cryptonote-util@0.0.5",
   "_shasum": "ccf11d801842788f56847939081ceb9dbbafe3d0",
   "_from": "git://github.com/ahmyi/node-cryptonote-util.git#v9",
   "_resolved": "git://github.com/ahmyi/node-cryptonote-util.git#48a69b4940d332e061c45cb41034197025a7a32b"
+
 }
